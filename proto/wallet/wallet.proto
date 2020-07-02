@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package wallet;
+
+service Wallet {
+    rpc Payment(PaymentRequest)returns (Response) {}
+    rpc CompensatePayment(CompensatePaymentRequest)returns (Response) {}
+}
+
+message PaymentRequest{
+    int64 uid = 1;
+    string orderId=2;
+    double value = 3;
+}
+
+message CompensatePaymentRequest{
+    int64 uid = 1;
+    string orderId=2;
+    double value = 3;
+}
+
+message Response{
+    int32 code = 1;
+    string msg = 2;
+}
