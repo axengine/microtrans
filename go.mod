@@ -8,7 +8,7 @@ replace (
 )
 
 require (
-	github.com/axengine/go-saga v0.0.0-20200702024208-7725552c5979
+	github.com/axengine/go-saga v0.0.0-20200702070523-635acceacc2f
 	github.com/axengine/utils v0.0.0-20191028072719-8037441797c3
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/go-xorm/xorm v0.7.9

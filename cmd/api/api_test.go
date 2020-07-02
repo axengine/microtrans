@@ -3,15 +3,25 @@ package api
 import (
 	"context"
 	"github.com/axengine/go-saga"
+	"github.com/axengine/go-saga/storage/kafka"
 	"github.com/axengine/utils/id/uuid"
 	"github.com/micro/go-micro/client"
 	"log"
 	"microtrans/config"
 	"microtrans/proto/order"
 	"microtrans/proto/wallet"
+	"os"
 	"strconv"
 	"testing"
 	"time"
+)
+
+var (
+	zkAddrs        = []string{"192.168.10.32:2181"}
+	brokerAddrs    = []string{"192.168.10.32:9092"}
+	partitions     = 1
+	replicas       = 1
+	returnDuration = 50 * time.Millisecond
 )
 
 func TestCreateOrder(t *testing.T) {
@@ -146,7 +156,14 @@ func TestMicroTrans(t *testing.T) {
 		}
 		return err
 	}
-	sec := saga.NewSEC()
+
+	store, err := kafka.NewKafkaStorage(zkAddrs, brokerAddrs, partitions, replicas, returnDuration, saga.LogPrefix,
+		log.New(os.Stdout, "saga_", log.LstdFlags))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sec := saga.NewSEC(store)
 	sec.AddSubTxDef("钱包支付", payFunc, compensatePayFunc)
 	sec.AddSubTxDef("修改订单状态", setOrderFunc, compensateSetOrderFunc)
 
@@ -156,7 +173,7 @@ func TestMicroTrans(t *testing.T) {
 	// ctx贯穿所有action的执行
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	err := sec.StartSaga(ctx, sagaID).
+	err = sec.StartSaga(ctx, sagaID).
 		ExecSub("钱包支付", uid, orderId, price).
 		ExecSub("修改订单状态", orderId, int32(1)).EndSaga()
 	// err是action执行的err
@@ -243,7 +260,12 @@ func microtrans(sagaID string) error {
 		}
 		return err
 	}
-	sec := saga.NewSEC()
+	store, err := kafka.NewKafkaStorage(zkAddrs, brokerAddrs, partitions, replicas, returnDuration, saga.LogPrefix,
+		log.New(os.Stdout, "saga_", log.LstdFlags))
+	if err != nil {
+		return err
+	}
+	sec := saga.NewSEC(store)
 	sec.AddSubTxDef("钱包支付", payFunc, compensatePayFunc)
 	sec.AddSubTxDef("修改订单状态", setOrderFunc, compensateSetOrderFunc)
 
@@ -253,7 +275,7 @@ func microtrans(sagaID string) error {
 	// ctx贯穿所有action的执行,此时间不能太短（保证补偿能正确执行）
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
-	err := sec.StartSaga(ctx, sagaID).
+	err = sec.StartSaga(ctx, sagaID).
 		ExecSub("钱包支付", uid, orderId, price).
 		ExecSub("修改订单状态", orderId, int32(1)).EndSaga()
 	// err是action执行的err
@@ -268,8 +290,13 @@ func microtrans(sagaID string) error {
 func TestRecover(t *testing.T) {
 	// 启动Coordinator，会从kafka将异常的事务最后一条日志打印出来,日志中包含执行参数，手工处理
 	// 如果使用内存存储，则无法恢复，只能从panic日志跟踪事务执行轨迹
-	sec := saga.NewSEC()
-	err := sec.StartCoordinator()
+	store, err := kafka.NewKafkaStorage(zkAddrs, brokerAddrs, partitions, replicas, returnDuration, saga.LogPrefix,
+		log.New(os.Stdout, "saga_", log.LstdFlags))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sec := saga.NewSEC(store)
+	err = sec.StartCoordinator()
 	if err != nil {
 		t.Log(err)
 	}
