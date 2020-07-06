@@ -2,8 +2,10 @@ package api
 
 import (
 	"context"
+	"errors"
 	"github.com/axengine/go-saga"
 	"github.com/axengine/go-saga/storage/kafka"
+	"github.com/axengine/go-saga/storage/redis"
 	"github.com/axengine/utils/id/uuid"
 	"github.com/micro/go-micro/client"
 	"log"
@@ -131,9 +133,9 @@ func TestMicroTrans(t *testing.T) {
 
 	setOrderFunc := func(ctx context.Context, orderId string, status int32) error {
 		log.Println("exec setOrderFunc")
-		//if status == 1 {
-		//	return errors.New("mock err")
-		//}
+		if status == 1 {
+			return errors.New("mock err")
+		}
 		//panic("mock panic")
 		_, err := oClient.SetOrder(ctx, &order.SetOrderStatusRequest{
 			OrderId: orderId,
@@ -157,13 +159,18 @@ func TestMicroTrans(t *testing.T) {
 		return err
 	}
 
-	store, err := kafka.NewKafkaStorage(zkAddrs, brokerAddrs, partitions, replicas, returnDuration, saga.LogPrefix,
-		log.New(os.Stdout, "saga_", log.LstdFlags))
+	//store, err := kafka.NewKafkaStorage(zkAddrs, brokerAddrs, partitions, replicas, returnDuration, saga.LogPrefix,
+	//	log.New(os.Stdout, "saga_", log.LstdFlags))
+	//if err != nil {
+	//	t.Fatal(err)
+	//}
+	logPrefix := "saga_"
+	store, err := redis.NewRedisStore("192.168.10.16:6379", "111111", 14, 2, 5, logPrefix)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	sec := saga.NewSEC(store)
+	sec := saga.NewSEC(store, logPrefix)
 	sec.AddSubTxDef("钱包支付", payFunc, compensatePayFunc)
 	sec.AddSubTxDef("修改订单状态", setOrderFunc, compensateSetOrderFunc)
 
@@ -260,12 +267,13 @@ func microtrans(sagaID string) error {
 		}
 		return err
 	}
-	store, err := kafka.NewKafkaStorage(zkAddrs, brokerAddrs, partitions, replicas, returnDuration, saga.LogPrefix,
+	logPrefix := "saga_"
+	store, err := kafka.NewKafkaStorage(zkAddrs, brokerAddrs, partitions, replicas, returnDuration, logPrefix,
 		log.New(os.Stdout, "saga_", log.LstdFlags))
 	if err != nil {
 		return err
 	}
-	sec := saga.NewSEC(store)
+	sec := saga.NewSEC(store, logPrefix)
 	sec.AddSubTxDef("钱包支付", payFunc, compensatePayFunc)
 	sec.AddSubTxDef("修改订单状态", setOrderFunc, compensateSetOrderFunc)
 
@@ -290,12 +298,13 @@ func microtrans(sagaID string) error {
 func TestRecover(t *testing.T) {
 	// 启动Coordinator，会从kafka将异常的事务最后一条日志打印出来,日志中包含执行参数，手工处理
 	// 如果使用内存存储，则无法恢复，只能从panic日志跟踪事务执行轨迹
-	store, err := kafka.NewKafkaStorage(zkAddrs, brokerAddrs, partitions, replicas, returnDuration, saga.LogPrefix,
+	logPrefix := "saga_"
+	store, err := kafka.NewKafkaStorage(zkAddrs, brokerAddrs, partitions, replicas, returnDuration, logPrefix,
 		log.New(os.Stdout, "saga_", log.LstdFlags))
 	if err != nil {
 		t.Fatal(err)
 	}
-	sec := saga.NewSEC(store)
+	sec := saga.NewSEC(store, logPrefix)
 	err = sec.StartCoordinator()
 	if err != nil {
 		t.Log(err)
