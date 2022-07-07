@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package wallet;
+option go_package = ".;wallet";
 
 service Wallet {
     rpc Payment(PaymentRequest)returns (Response) {}

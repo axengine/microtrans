@@ -2,9 +2,9 @@ package api
 
 import (
 	_ "github.com/axengine/go-saga/storage/memory"
-	"github.com/micro/go-micro"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-plugins/registry/etcdv3"
+	"github.com/go-micro/plugins/v4/registry/etcd"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/registry"
 	"microtrans/config"
 	"time"
 )
@@ -16,7 +16,7 @@ func init() {
 	microService := micro.NewService(micro.Name("microtrans.test"),
 		micro.RegisterTTL(30*time.Second),
 		micro.RegisterInterval(10*time.Second),
-		micro.Registry(etcdv3.NewRegistry(registry.Addrs(cfg.Service.Registry...))),
+		micro.Registry(etcd.NewRegistry(registry.Addrs(cfg.Service.Registry...))),
 	)
 	go microService.Run()
 }

@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-micro/plugins/v4/registry/etcd"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
-	"github.com/micro/go-micro"
-	"github.com/micro/go-micro/registry"
-	"github.com/micro/go-plugins/registry/etcdv3"
+	"go-micro.dev/v4"
+	"go-micro.dev/v4/registry"
 	"microtrans/config"
 	"microtrans/model"
 	proto "microtrans/proto/wallet"
@@ -25,7 +25,7 @@ func main() {
 		micro.Name(cfg.Service.WalletSrvName),
 		micro.RegisterTTL(time.Second*30),
 		micro.RegisterInterval(time.Second*10),
-		micro.Registry(etcdv3.NewRegistry(registry.Addrs(cfg.Service.Registry...))),
+		micro.Registry(etcd.NewRegistry(registry.Addrs(cfg.Service.Registry...))),
 	)
 	service.Init()
 

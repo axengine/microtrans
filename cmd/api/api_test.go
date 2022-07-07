@@ -7,7 +7,7 @@ import (
 	"github.com/axengine/go-saga/storage/kafka"
 	"github.com/axengine/go-saga/storage/redis"
 	"github.com/axengine/utils/id/uuid"
-	"github.com/micro/go-micro/client"
+	"go-micro.dev/v4/client"
 	"log"
 	"microtrans/config"
 	"microtrans/proto/order"
